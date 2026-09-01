@@ -25,4 +25,329 @@ body{background:#0e0e10;color:#c8c8d4;font-family:system-ui,sans-serif;min-heigh
 .tab.active{border-bottom-color:#c0392b;color:#c0392b;font-weight:700}
 .content{padding:12px 14px;max-width:480px;margin:0 auto;padding-bottom:50px}
 .card{background:#1c1c20;border-radius:12px;padding:14px;border:1px solid #2a2a30;margin-bottom:10px}
-.card-label{font-family:'Courier New',monospace;font-size:0.52rem;color:#6b6
+.card-label{font-family:'Courier New',monospace;font-size:0.52rem;color:#6b6b7a;letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.stat{background:#1c1c20;border-radius:12px;padding:14px 10px;border:1px solid #2a2a30;text-align:center}
+.stat-val{font-family:'Courier New',monospace;font-size:1.5rem;font-weight:700;line-height:1}
+.stat-label{font-family:'Courier New',monospace;font-size:0.48rem;color:#6b6b7a;margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+.stat-sub{font-family:'Courier New',monospace;font-size:0.45rem;margin-top:2px}
+.prog-row{margin-bottom:10px}
+.prog-top{display:flex;justify-content:space-between;margin-bottom:3px}
+.prog-label{font-family:'Courier New',monospace;font-size:0.62rem;color:#c8c8d4}
+.prog-val{font-family:'Courier New',monospace;font-size:0.62rem}
+.goal-item{display:flex;gap:10px;align-items:center;padding:9px 10px;background:#111;border-radius:8px;margin-bottom:6px}
+.goal-text{font-weight:700;font-size:0.8rem}
+.goal-sub{font-family:'Courier New',monospace;font-size:0.56rem;color:#6b6b7a;margin-top:2px}
+.punish-item{padding:9px 10px;background:#140a0a;border-radius:8px;margin-bottom:6px;border-left:3px solid #c0392b}
+.punish-title{font-weight:700;color:#c0392b;font-size:0.75rem}
+.punish-sub{font-family:'Courier New',monospace;font-size:0.58rem;color:#6b6b7a;margin-top:2px}
+.phase-item{display:flex;gap:10px;align-items:center;padding:10px;border-radius:8px;margin-bottom:6px;border:1px solid #2a2a30}
+.phase-badge{width:36px;font-family:'Courier New',monospace;font-size:0.52rem;font-weight:700}
+.phase-name{font-weight:700;font-size:0.8rem}
+.phase-detail{font-family:'Courier New',monospace;font-size:0.56rem;color:#6b6b7a}
+.active-badge{font-family:'Courier New',monospace;font-size:0.48rem;padding:2px 6px;border-radius:10px;color:#fff;margin-left:auto}
+.footer{position:fixed;bottom:0;left:0;right:0;background:#111113;border-top:1px solid #2a2a30;padding:5px;text-align:center}
+.footer-text{font-family:'Courier New',monospace;font-size:0.45rem;color:#6b6b7a}
+.clock-time{font-family:'Courier New',monospace;font-size:1.5rem;font-weight:700;color:#f0f0f8;letter-spacing:4px;text-align:center}
+.clock-date{font-family:'Courier New',monospace;font-size:0.5rem;color:#6b6b7a;text-align:center;margin-top:4px;letter-spacing:2px}
+.loading{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px}
+.error-box{padding:20px;text-align:center}
+.retry-btn{padding:10px 24px;background:#c0392b;border:none;border-radius:8px;color:#fff;font-family:'Courier New',monospace;font-size:0.75rem;cursor:pointer;margin-top:12px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading" class="loading">
+  <div class="mono" style="color:#c0392b;font-size:1rem;letter-spacing:4px">⚔ LOADING...</div>
+  <div class="mono" style="color:#6b6b7a;font-size:0.6rem">Connecting to Notion</div>
+</div>
+
+<!-- ERROR -->
+<div id="error-screen" class="loading hidden">
+  <div style="font-size:2rem">⚠️</div>
+  <div class="mono error-box" style="color:#c0392b;font-size:0.75rem" id="error-msg"></div>
+  <button class="retry-btn" onclick="fetchData()">RETRY</button>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="hidden">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="mono" style="font-size:0.52rem;color:#c0392b;letter-spacing:5px;margin-bottom:5px">4-MONTH WAR PROGRAM</div>
+    <div class="title">⚔ WAR ROOM ⚔</div>
+    <div class="sub">JEE · PHYSIQUE · FINANCE · DO OR DIE</div>
+  </div>
+
+  <!-- War Line -->
+  <div class="warline">
+    <div class="wl-top">
+      <span class="wl-label">THE WAR LINE</span>
+      <span class="wl-day">DAY <span id="day-num">1</span> / 120</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="war-bar" style="width:0%"></div></div>
+    <div class="phases">
+      <span class="phase" id="p1">Foundation</span>
+      <span class="phase" id="p2">Deep Attack</span>
+      <span class="phase" id="p3">Mock War</span>
+      <span class="phase" id="p4">Final Sprint</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('home',this)">⚔️ War Room</button>
+    <button class="tab" onclick="switchTab('stats',this)">📊 Stats</button>
+    <button class="tab" onclick="switchTab('punish',this)">💀 Punish</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- HOME TAB -->
+    <div id="tab-home">
+      <!-- Clock -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="clock-time" id="clock">00:00:00</div>
+        <div class="clock-date" id="clock-date"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-val" id="chapters-val" style="color:#4caf70">0/51</div>
+          <div class="stat-label">Chapters Done</div>
+          <div class="stat-sub" id="chapters-sub" style="color:#4caf70"></div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="blocks-val" style="color:#3b82f6">0/7</div>
+          <div class="stat-label">Today's Blocks</div>
+          <div class="stat-sub" style="color:#3b82f6">checked today</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="punish-val" style="color:#4caf70">0</div>
+          <div class="stat-label">Punishments Due</div>
+          <div class="stat-sub" id="punish-sub" style="color:#4caf70">All clear ✓</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="miles-val" style="color:#c9922a">0/17</div>
+          <div class="stat-label">Milestones Hit</div>
+          <div class="stat-sub" style="color:#c9922a">conquered</div>
+        </div>
+      </div>
+
+      <!-- Subject Progress -->
+      <div class="card">
+        <div class="card-label">Subject Progress</div>
+        <div class="prog-row">
+          <div class="prog-top">
+            <span class="prog-label">📐 Maths</span>
+            <span class="prog-val" id="maths-val" style="color:#c0392b">0/15</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="maths-bar" style="background:#c0392b;width:0%"></div></div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-top">
+            <span class="prog-label">⚡ Physics</span>
+            <span class="prog-val" id="physics-val" style="color:#c9922a">0/19</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="physics-bar" style="background:#c9922a;width:0%"></div></div>
+        </div>
+        <div class="prog-row" style="margin-bottom:0">
+          <div class="prog-top">
+            <span class="prog-label">🧪 Chemistry</span>
+            <span class="prog-val" id="chem-val" style="color:#4caf70">0/17</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="chem-bar" style="background:#4caf70;width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Goals -->
+      <div class="card">
+        <div class="card-label">Mission Objectives</div>
+        <div class="goal-item" style="border-left:3px solid #c0392b">
+          <span style="font-size:1.2rem">📐</span>
+          <div>
+            <div class="goal-text" style="color:#c0392b">JEE Mains</div>
+            <div class="goal-sub" id="jee-sub">51 chapters remaining</div>
+          </div>
+        </div>
+        <div class="goal-item" style="border-left:3px solid #c9922a">
+          <span style="font-size:1.2rem">💪</span>
+          <div>
+            <div class="goal-text" style="color:#c9922a">Physique</div>
+            <div class="goal-sub">Run 7 AM · Workout 7:10 PM</div>
+          </div>
+        </div>
+        <div class="goal-item" style="border-left:3px solid #4caf70">
+          <span style="font-size:1.2rem">💰</span>
+          <div>
+            <div class="goal-text" style="color:#4caf70">Finance + Skills</div>
+            <div class="goal-sub">5:10 PM daily · Build long-term</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div id="tab-stats" class="hidden">
+      <div class="card">
+        <div class="card-label">4-Month Phases</div>
+        <div id="phases-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Milestones Progress</div>
+        <div class="prog-row" style="margin-bottom:0">
+          <div class="prog-top">
+            <span class="prog-label">🏆 Overall</span>
+            <span class="prog-val" id="miles-prog" style="color:#c9922a">0/17</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="miles-bar" style="background:#c9922a;width:0%"></div></div>
+        </div>
+        <div class="mono" style="font-size:0.58rem;color:#6b6b7a;margin-top:10px">
+          Open Notion → Milestones Board → tick as you conquer
+        </div>
+      </div>
+    </div>
+
+    <!-- PUNISH TAB -->
+    <div id="tab-punish" class="hidden">
+      <div class="card" style="text-align:center;background:#150808;border-color:#c0392b33">
+        <div id="punish-count" style="font-family:'Courier New',monospace;font-size:1.8rem;font-weight:700;color:#4caf70">0</div>
+        <div class="mono" style="font-size:0.52rem;color:#6b6b7a;letter-spacing:2px">PUNISHMENTS PENDING</div>
+      </div>
+      <div class="punish-item"><div class="punish-title">Miss 1 study block</div><div class="punish-sub">→ Do it + 30 extra min. Sleep delayed.</div></div>
+      <div class="punish-item"><div class="punish-title">Miss morning run</div><div class="punish-sub">→ 100 burpees before next meal.</div></div>
+      <div class="punish-item"><div class="punish-title">Miss workout</div><div class="punish-sub">→ No phone/entertainment 24 hours.</div></div>
+      <div class="punish-item"><div class="punish-title">Skip night revision</div><div class="punish-sub">→ Wake at 3:30 AM next day.</div></div>
+      <div class="punish-item"><div class="punish-title">Miss 2+ blocks</div><div class="punish-sub">→ That Sunday = full study day.</div></div>
+      <div class="punish-item"><div class="punish-title">Full day procrastination</div><div class="punish-sub">→ 24-hour fast. Water only.</div></div>
+      <div class="punish-item"><div class="punish-title">Two bad days in a row</div><div class="punish-sub">→ Shame note — read every morning 7 days.</div></div>
+      <div class="punish-item"><div class="punish-title">Full week failure</div><div class="punish-sub">→ Redo the week. Doesn't count.</div></div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-text">LIVE FROM NOTION · Updated <span id="update-time">--:--</span></span>
+  </div>
+
+</div>
+
+<script>
+let currentTab = 'home';
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  ['home','stats','punish'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t !== name);
+  });
+  currentTab = name;
+}
+
+// Clock
+function updateClock() {
+  const now = new Date();
+  const pad = n => n.toString().padStart(2,'0');
+  document.getElementById('clock').textContent = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  document.getElementById('clock-date').textContent = now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Fetch data
+async function fetchData() {
+  try {
+    const res = await fetch('/api/warroom');
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const d = await res.json();
+    if (d.error) throw new Error(d.error);
+    updateUI(d);
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('error-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('update-time').textContent = new Date().toLocaleTimeString('en-IN');
+  } catch(e) {
+    if (!document.getElementById('app').classList.contains('hidden')) return;
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('error-msg').textContent = e.message;
+    document.getElementById('error-screen').classList.remove('hidden');
+  }
+}
+
+function updateUI(d) {
+  // War line
+  const day = d.day || 1;
+  const pct = Math.min(Math.round((day/120)*100), 100);
+  document.getElementById('day-num').textContent = day;
+  document.getElementById('war-bar').style.width = pct + '%';
+  ['p1','p2','p3','p4'].forEach((id,i) => {
+    document.getElementById(id).classList.toggle('active', day > i*30);
+  });
+
+  // Stats
+  const ch = d.chapters || {};
+  const total = ch.total || 51;
+  const done = ch.done || 0;
+  document.getElementById('chapters-val').textContent = done+'/'+total;
+  document.getElementById('chapters-sub').textContent = Math.round((done/total)*100)+'% complete';
+  document.getElementById('jee-sub').textContent = (total-done)+' chapters remaining';
+
+  const bl = d.blocks || {};
+  document.getElementById('blocks-val').textContent = (bl.done||0)+'/'+(bl.total||7);
+
+  const pu = d.punishments || {};
+  const pending = pu.pending || 0;
+  document.getElementById('punish-val').textContent = pending;
+  document.getElementById('punish-val').style.color = pending > 0 ? '#c0392b' : '#4caf70';
+  document.getElementById('punish-sub').textContent = pending > 0 ? 'SERVE THEM' : 'All clear ✓';
+  document.getElementById('punish-sub').style.color = pending > 0 ? '#c0392b' : '#4caf70';
+  document.getElementById('punish-count').textContent = pending;
+  document.getElementById('punish-count').style.color = pending > 0 ? '#c0392b' : '#4caf70';
+
+  const ms = d.milestones || {};
+  document.getElementById('miles-val').textContent = (ms.done||0)+'/'+(ms.total||17);
+  document.getElementById('miles-prog').textContent = (ms.done||0)+'/'+(ms.total||17);
+  const msPct = ms.total ? Math.round((ms.done/ms.total)*100) : 0;
+  document.getElementById('miles-bar').style.width = msPct + '%';
+
+  // Subject bars
+  const bs = ch.bySubject || {};
+  const M = bs.Maths || {done:0,total:15};
+  const P = bs.Physics || {done:0,total:19};
+  const C = bs.Chemistry || {done:0,total:17};
+  document.getElementById('maths-val').textContent = M.done+'/'+M.total;
+  document.getElementById('physics-val').textContent = P.done+'/'+P.total;
+  document.getElementById('chem-val').textContent = C.done+'/'+C.total;
+  document.getElementById('maths-bar').style.width = (M.total?Math.round((M.done/M.total)*100):0)+'%';
+  document.getElementById('physics-bar').style.width = (P.total?Math.round((P.done/P.total)*100):0)+'%';
+  document.getElementById('chem-bar').style.width = (C.total?Math.round((C.done/C.total)*100):0)+'%';
+
+  // Phases
+  const phases = [
+    {m:'Month 1',ph:'Foundation',detail:'All RED chapters',c:'#c0392b',active:day<=30},
+    {m:'Month 2',ph:'Deep Attack',detail:'Yellow + PYQs',c:'#c9922a',active:day>30&&day<=60},
+    {m:'Month 3',ph:'Mock War',detail:'3 mocks/week',c:'#cc4400',active:day>60&&day<=90},
+    {m:'Month 4',ph:'Final Sprint',detail:'Revision only',c:'#4caf70',active:day>90},
+  ];
+  document.getElementById('phases-list').innerHTML = phases.map(p => `
+    <div class="phase-item" style="background:${p.active?p.c+'11':'#111'};border-color:${p.active?p.c+'55':'#2a2a30'}">
+      <div class="phase-badge" style="color:${p.c}">${p.m}</div>
+      <div style="flex:1">
+        <div class="phase-name" style="color:${p.active?p.c:'#6b6b7a'}">${p.ph}</div>
+        <div class="phase-detail">${p.detail}</div>
+      </div>
+      ${p.active?`<span class="active-badge" style="background:${p.c}">ACTIVE</span>`:''}
+    </div>
+  `).join('');
+}
+
+fetchData();
+setInterval(fetchData, 60000);
+</script>
+</body>
+</html>
