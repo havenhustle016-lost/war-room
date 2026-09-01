@@ -1,7 +1,6 @@
 const NOTION_VERSION = "2022-06-28";
 
-async function queryDB(dbId, filter = null) {
-  const body = filter ? { filter } : {};
+async function queryDB(dbId) {
   const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
     method: "POST",
     headers: {
@@ -9,83 +8,51 @@ async function queryDB(dbId, filter = null) {
       "Notion-Version": NOTION_VERSION,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({}),
   });
-  if (!res.ok) throw new Error(`Notion API error: ${res.status}`);
-  return res.json();
+  const json = await res.json();
+  if (!res.ok) throw new Error(`DB ${dbId}: ${json.message || res.status}`);
+  return json;
 }
 
 exports.handler = async () => {
-  try {
-    const today = new Date().toISOString().split("T")[0];
-    const [chapters, daily, punishments, milestones] = await Promise.all([
-      queryDB(process.env.CHAPTERS_DB_ID),
-      queryDB(process.env.DAILY_LOG_DB_ID, {
-        property: "Date", date: { equals: today }
-      }),
-      queryDB(process.env.PUNISHMENTS_DB_ID),
-      queryDB(process.env.MILESTONES_DB_ID),
-    ]);
+  const results = {};
+  const errors = {};
 
-    const chRows = chapters.results || [];
-    const doneChapters = chRows.filter(r => {
-      const s = r.properties?.Status?.status?.name || "";
-      return s === "Done" || s === "Revised";
-    }).length;
+  // Test each DB one by one
+  const dbs = {
+    chapters:     process.env.CHAPTERS_DB_ID,
+    daily:        process.env.DAILY_LOG_DB_ID,
+    punishments:  process.env.PUNISHMENTS_DB_ID,
+    milestones:   process.env.MILESTONES_DB_ID,
+  };
 
-    const bySubject = {
-      Maths:     { done:0, total:0 },
-      Physics:   { done:0, total:0 },
-      Chemistry: { done:0, total:0 }
-    };
-    chRows.forEach(r => {
-      const subj = r.properties?.Subject?.select?.name || "Other";
-      const s    = r.properties?.Status?.status?.name || "";
-      if (bySubject[subj]) {
-        bySubject[subj].total++;
-        if (s === "Done" || s === "Revised") bySubject[subj].done++;
-      }
-    });
+  // Check env vars exist
+  const envCheck = {};
+  Object.entries(dbs).forEach(([k,v]) => {
+    envCheck[k] = v ? `SET (${v.substring(0,8)}...)` : "MISSING";
+  });
+  envCheck.token = process.env.NOTION_TOKEN 
+    ? `SET (${process.env.NOTION_TOKEN.substring(0,10)}...)` 
+    : "MISSING";
 
-    const todayRow = (daily.results || [])[0];
-    const blockNames = ["Maths Block","Physics Block","Chem Block",
-                        "Run Done","Workout Done","Finance Block","Night Revision"];
-    let blocksDone = 0;
-    if (todayRow) {
-      blockNames.forEach(n => {
-        if (todayRow.properties?.[n]?.checkbox) blocksDone++;
-      });
+  // Try each database
+  for (const [name, id] of Object.entries(dbs)) {
+    if (!id) { errors[name] = "ID not set in env vars"; continue; }
+    try {
+      const data = await queryDB(id);
+      results[name] = `OK - ${data.results?.length ?? 0} rows`;
+    } catch(e) {
+      errors[name] = e.message;
     }
-
-    const pending = (punishments.results || [])
-      .filter(r => !r.properties?.Served?.checkbox).length;
-
-    const msRows = milestones.results || [];
-    const doneMilestones = msRows
-      .filter(r => r.properties?.Conquered?.checkbox).length;
-
-    const dayNum = Math.max(1,
-      Math.floor((Date.now() - new Date("2026-08-27").getTime()) / 86400000) + 1
-    );
-
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify({
-        day: dayNum,
-        chapters: { done: doneChapters, total: chRows.length, bySubject },
-        blocks:   { done: blocksDone, total: 7 },
-        punishments: { pending },
-        milestones: { done: doneMilestones, total: msRows.length },
-      }),
-    };
-  } catch(err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
   }
+
+  return {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    },
+    body: JSON.stringify({ envCheck, results, errors }, null, 2),
+  };
 };
