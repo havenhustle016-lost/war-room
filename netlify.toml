@@ -2,6 +2,12 @@
   publish = "."
   functions = "netlify/functions"
 
+
+[functions]
+  directory = "netlify/functions"
+  
+
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
