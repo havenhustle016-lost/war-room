@@ -96,7 +96,7 @@ exports.handler = async () => {
     }).length;
 
     // ── Day number ──
-    const startDate = new Date("2026-08-27");
+    const startDate = new Date("2026-09-01");
     const dayNum = Math.max(1,
       Math.floor((Date.now() - startDate.getTime()) / 86400000) + 1
     );
